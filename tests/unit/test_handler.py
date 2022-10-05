@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from hello_world import app
+from cost_rules import app
 
 
 @pytest.fixture()
@@ -62,12 +62,108 @@ def apigw_event():
     }
 
 
-def test_lambda_handler(apigw_event, mocker):
+def test_inherited():
+    '''Test inherited_rules()'''
+    one_tag = [ 'One', ]
 
-    ret = app.lambda_handler(apigw_event, "")
-    data = json.loads(ret["body"])
+    expected = [{
+        'Type': 'INHERITED_VALUE',
+        'InheritedValue': {
+            'DimensionName': 'TAG',
+            'DimensionKey': 'One',
+        }
+    },]
 
-    assert ret["statusCode"] == 200
-    assert "message" in ret["body"]
-    assert data["message"] == "hello world"
-    # assert "location" in data.dict_keys()
+    result = app.inherited_rules(one_tag)
+    assert result == expected
+
+def test_account_without_tags():
+    '''Test account_rule() without specifying tags'''
+    label = 'Category Name'
+    accounts = [ 'abc123', '456xyz' ]
+
+    expected = {
+        'Type': 'REGULAR',
+        'Value': 'Category Name',
+        'Rule': {
+            'Dimensions': {
+                'Key': 'LINKED_ACCOUNT',
+                'Values': [ 'abc123', '456xyz' ],
+                'MatchOptions': [ 'EQUALS', ],
+            }
+        }
+    }
+
+    result = app.account_rule(label, accounts)
+    assert result == expected
+
+def test_account_with_tags():
+    '''Test account_rule() with specifying tags'''
+    label = 'Category Name'
+    accounts = [ 'abc123', '456xyz' ]
+    tags = [ 'One', 'Two' ]
+
+    expected = {
+        'Type': 'REGULAR',
+        'Value': 'Category Name',
+        'Rule': {
+            'And': [
+                {
+                    'Dimensions': {
+                        'Key': 'LINKED_ACCOUNT',
+                        'Values': [ 'abc123', '456xyz' ],
+                        'MatchOptions': [ 'EQUALS', ],
+                    }
+                },
+                {
+                    'Tags': {
+                        'Key': 'One',
+                        'MatchOptions': [ 'ABSENT', ],
+                    }
+                },
+                {
+                    'Tags': {
+                        'Key': 'Two',
+                        'MatchOptions': [ 'ABSENT', ],
+                    }
+                },
+            ]
+        }
+    }
+
+    result = app.account_rule(label, accounts, tags)
+    assert result == expected
+
+def test_tag_end():
+    '''Test tag_end_rules()'''
+    label = 'Category Name'
+    tags = [ 'One', 'Two' ]
+    search = [ 'Suffix', ]
+
+    expected = [
+        {
+            'Type': 'REGULAR',
+            'Value': 'Category Name',
+            'Rule': {
+                'Tags': {
+                    'Key': 'One',
+                    'Values': [ 'Suffix', ],
+                    'MatchOptions': [ 'ENDS_WITH', ],
+                }
+            }
+        },
+        {
+            'Type': 'REGULAR',
+            'Value': 'Category Name',
+            'Rule': {
+                'Tags': {
+                    'Key': 'Two',
+                    'Values': [ 'Suffix', ],
+                    'MatchOptions': [ 'ENDS_WITH', ],
+                }
+            }
+        },
+    ]
+
+    result = app.tag_end_rules(label, tags, search)
+    assert result == expected
