@@ -1,11 +1,170 @@
-# lambda-template
-A GitHub template for quickly starting a new AWS lambda project.
+# cfn-macro-cost-rules
+A CloudFormation snippet macro for generating the Rules parameter of AWS::CE::CostCategory resources.
 
-## Naming
-Naming conventions:
-* for a vanilla Lambda: `lambda-<context>`
-* for a Cloudformation Transform macro: `cfn-macro-<context>`
-* for a Cloudformation Custom Resource: `cfn-cr-<context>`
+## Input Format
+This snippet macro expects to process a snippet with one or both of two
+top-level keys: `InheritedValues` and `RegularValues`.
+
+### Inherited Values from Tags
+
+When specifying `InheritedValues`, a `TagOrder` sub-key must be provided, and a
+`RulePosition` sub-key may also be provided. The `TagOrder` sub-key must
+provide a list strings corresponding to a tag name that has been configured as a
+cost allocation tag. The `RulePosition` sub-key may be provided to configure
+the inherited-value rules to occur either before or after regular-valued rules;
+possible values are either `First` or `Last`, defaulting to `Last`.
+
+Minimal example creating a cost category from a single tag:
+```yaml
+Resources:
+  MyCostCategory:
+    Type: AWS::CE::CostCategory
+    Properties:
+      Name: 'My Cost Category'
+      RuleVersion: 'CostCategoryExpression.v1'
+      Rules:
+        Fn::Transform:
+      - Name: SageCostRulesGenerator
+    InheritedValues:
+      TagOrder:
+        - MyTagName
+```
+
+### Regular Values
+
+When specifying `RegularValues`, a list of objects is expected where each object
+has a `Value` sub-key and a combination of `Accounts`, `TagNames`, `TagEndsWith`,
+and/or `TagStartsWith` sub-keys. The `Value` sub-key expects a string, and all
+other sub-keys expect a list of strings.
+
+If an element of the list only specifies `Value` and `Accounts` sub-keys, then
+the resulting rule will assign all resources in the listed accounts to the cost
+category value.
+```yaml
+Resources:
+  MyCostCategory:
+    Type: AWS::CE::CostCategory
+    Properties:
+      Name: 'My Cost Category'
+      RuleVersion: 'CostCategoryExpression.v1'
+      Rules:
+        Fn::Transform:
+      - Name: SageCostRulesGenerator
+    RegularValues:
+      - Value: Category A
+        Accounts:
+          - 12345678
+          - 56781234
+```
+
+If an element of the list only specifies `Value` and `TagNames` sub-keys, then
+the resulting rules will assign all resources tagged with one of the listed tag
+names to the cost category value. The tag value is ignored.
+```yaml
+Resources:
+  MyCostCategory:
+    Type: AWS::CE::CostCategory
+    Properties:
+      Name: 'My Cost Category'
+      RuleVersion: 'CostCategoryExpression.v1'
+      Rules:
+        Fn::Transform:
+      - Name: SageCostRulesGenerator
+    RegularValues:
+      - Value: Category B
+        TagNames:
+          - MyTagOne
+          - MyTagTwo
+```
+
+To match tags based on a prefix or suffix of the tag value, specify either
+`TagStartsWith` or `TagEndsWith` respectively.
+
+This example will generate a first rule to match any resources tagged with
+a tag named `MyTagOne` if the tag value starts with `TagOnePrefix`; and a
+second rule to match resources with a `MyTagTwo` tag with a value ending
+in `:tag two suffix`; with both rules assigning matching resources to the
+same cost category.
+```yaml
+Resources:
+  MyCostCategory:
+    Type: AWS::CE::CostCategory
+    Properties:
+      Name: 'My Cost Category'
+      RuleVersion: 'CostCategoryExpression.v1'
+      Rules:
+        Fn::Transform:
+      - Name: SageCostRulesGenerator
+    RegularValues:
+      - Value: Category C
+        TagNames:
+          - MyTagOne
+        TagStartsWith:
+          - TagOnePrefix
+      - Value: Category C
+        TagNames:
+          - MyTagTwo
+        TagEndsWith:
+          - ':tag two suffix'
+```
+
+When combining `Accounts` and `TagNames` sub-keys, in addition to creating cost
+category rules for the tag names as expected, fallback rules based on the given
+accounts will be created for resources that LACK the given tags.
+
+This example will create a rule to categorize resources if `MyTagOne` exists
+and starts with `TagOnePrefix`, and another rule to categorize resources in
+account `56781234` without a `MyTagOne` tag into the same category:
+```yaml
+Resources:
+  MyCostCategory:
+    Type: AWS::CE::CostCategory
+    Properties:
+      Name: 'My Cost Category'
+      RuleVersion: 'CostCategoryExpression.v1'
+      Rules:
+        Fn::Transform:
+      - Name: SageCostRulesGenerator
+    RegularValues:
+      - Value: Category D
+        TagNames:
+          - MyTagOne
+        TagStartsWith:
+          - TagOnePrefix
+        Accounts:
+          - 56781234
+```
+
+
+### Combining Regular and Inherited Values
+
+If both `RegularValues` and `InheritedValues` keys are provided, then both sets
+of rules will be generated and concatenated together. Since key order for YAML
+maps is implementation dependent (i.e. no guarantee that order is preserved),
+the inherited-value rules will either be prepended or appended to the
+regular-value rules based on the `RulePosition` sub-key under `InheritedValues`.
+
+```yaml
+Resources:
+  MyCostCategory:
+    Type: AWS::CE::CostCategory
+    Properties:
+      Name: 'My Cost Category'
+      RuleVersion: 'CostCategoryExpression.v1'
+      Rules:
+        Fn::Transform:
+      - Name: SageCostRulesGenerator
+    InheritedValues:
+      TagOrder:
+        - ImportantGroupTag
+      RulePosition: First
+    RegularValues:
+      - Value: Fallback Group
+        Accounts:
+          - 12345678
+          - 56781234
+```
+
 
 ## Development
 
@@ -48,7 +207,7 @@ Tests are defined in the `tests` folder in this project. Use PIP to install the
 [pytest](https://docs.pytest.org/en/latest/) and run unit tests.
 
 ```shell script
-$ python -m pytest tests/ -v
+$ python -m pytest tests/ -vv
 ```
 
 ### Run integration tests
@@ -56,7 +215,7 @@ Running integration tests
 [requires docker](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-local-start-api.html)
 
 ```shell script
-$ sam local invoke HelloWorldFunction --event events/event.json
+$ sam local invoke Function --event events/event.json
 ```
 
 ## Deployment
