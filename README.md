@@ -24,10 +24,10 @@ Resources:
       RuleVersion: 'CostCategoryExpression.v1'
       Rules:
         Fn::Transform:
-      - Name: SageCostRulesGenerator
-    InheritedValues:
-      TagOrder:
-        - MyTagName
+          - Name: SageCostRuleGenerator
+        InheritedValues:
+          TagOrder:
+            - MyTagName
 ```
 
 ### Regular Values
@@ -49,12 +49,12 @@ Resources:
       RuleVersion: 'CostCategoryExpression.v1'
       Rules:
         Fn::Transform:
-      - Name: SageCostRulesGenerator
-    RegularValues:
-      - Value: Category A
-        Accounts:
-          - 12345678
-          - 56781234
+          - Name: SageCostRuleGenerator
+        RegularValues:
+          - Value: Category A
+            Accounts:
+              - 12345678
+              - 56781234
 ```
 
 If an element of the list only specifies `Value` and `TagNames` sub-keys, then
@@ -69,12 +69,12 @@ Resources:
       RuleVersion: 'CostCategoryExpression.v1'
       Rules:
         Fn::Transform:
-      - Name: SageCostRulesGenerator
-    RegularValues:
-      - Value: Category B
-        TagNames:
-          - MyTagOne
-          - MyTagTwo
+          - Name: SageCostRuleGenerator
+        RegularValues:
+          - Value: Category B
+            TagNames:
+              - MyTagOne
+              - MyTagTwo
 ```
 
 To match tags based on a prefix or suffix of the tag value, specify either
@@ -94,18 +94,18 @@ Resources:
       RuleVersion: 'CostCategoryExpression.v1'
       Rules:
         Fn::Transform:
-      - Name: SageCostRulesGenerator
-    RegularValues:
-      - Value: Category C
-        TagNames:
-          - MyTagOne
-        TagStartsWith:
-          - TagOnePrefix
-      - Value: Category C
-        TagNames:
-          - MyTagTwo
-        TagEndsWith:
-          - ':tag two suffix'
+          - Name: SageCostRuleGenerator
+        RegularValues:
+          - Value: Category C
+            TagNames:
+              - MyTagOne
+           TagStartsWith:
+             - TagOnePrefix
+          - Value: Category C
+            TagNames:
+              - MyTagTwo
+            TagEndsWith:
+              - ':tag two suffix'
 ```
 
 When combining `Accounts` and `TagNames` sub-keys, in addition to creating cost
@@ -124,15 +124,15 @@ Resources:
       RuleVersion: 'CostCategoryExpression.v1'
       Rules:
         Fn::Transform:
-      - Name: SageCostRulesGenerator
-    RegularValues:
-      - Value: Category D
-        TagNames:
-          - MyTagOne
-        TagStartsWith:
-          - TagOnePrefix
-        Accounts:
-          - 56781234
+          - Name: SageCostRuleGenerator
+        RegularValues:
+          - Value: Category D
+            TagNames:
+              - MyTagOne
+            TagStartsWith:
+              - TagOnePrefix
+            Accounts:
+              - 56781234
 ```
 
 
@@ -153,16 +153,16 @@ Resources:
       RuleVersion: 'CostCategoryExpression.v1'
       Rules:
         Fn::Transform:
-      - Name: SageCostRulesGenerator
-    InheritedValues:
-      TagOrder:
-        - ImportantGroupTag
-      RulePosition: First
-    RegularValues:
-      - Value: Fallback Group
-        Accounts:
-          - 12345678
-          - 56781234
+          - Name: SageCostRuleGenerator
+        InheritedValues:
+          TagOrder:
+            - ImportantGroupTag
+          RulePosition: First
+        RegularValues:
+          - Value: Fallback Group
+            Accounts:
+              - 12345678
+              - 56781234
 ```
 
 
