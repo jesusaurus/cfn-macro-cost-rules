@@ -1,4 +1,8 @@
 import json
+import logging
+
+LOG = logging.getLogger(__name__)
+LOG.setLevel(logging.INFO)
 
 def tag_rules(label, tags, search, match):
     '''
@@ -295,6 +299,8 @@ def handler(event, context):
         rules = rule_generator(fragment)
         out['fragment'] = json.dumps(rules)
         out['status'] = 'success'
+        LOG.info(f"Output size: {len(out['fragment'])}")
+        LOG.info(out['fragment'])
 
     except Exception as e:
         out['status'] = 'failed'
